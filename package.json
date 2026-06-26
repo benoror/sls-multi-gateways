@@ -10,6 +10,7 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "del ./build/*",
+    "prepare": "npm run build",
     "pub": "npm version patch && npm run build && npm publish",
     "dev": "ts-node src/index.ts"
   },

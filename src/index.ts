@@ -12,19 +12,36 @@ const prefixColors = [
 const file = readConfigFile()
 
 const services = file.services as Service[];
-const httpPort = file.port || 3000;
+const port = file.port || 3000;
+const servicePort = file.servicePort || 3001;
 const stage = file.stage || 'dev';
+const prependStageInUrl = file.prependStageInUrl !== undefined ? file.prependStageInUrl : true;
 
-const commands = runServices(services, httpPort, stage, prefixColors);
+const commands = runServices(
+    services,
+    servicePort,
+    stage,
+    prefixColors,
+    file.slsCommand,
+    file.slsArgs,
+    file.env,
+);
+
+const proxyServer = runProxy(services, port, servicePort, stage, prependStageInUrl);
 
 concurrently(commands, {
    killOthers: ['failure', 'success']
-}).then()
+}).then(
+    () => {
+        proxyServer.close(() => process.exit(0));
+    },
+    (error) => {
+        proxyServer.close(() => process.exit(error ? 1 : 0));
+    },
+)
 
 
 process.on('SIGINT', () => {
     console.log("")
-    process.exit(1);
+    proxyServer.close(() => process.exit(1));
 });
-
-runProxy(services, httpPort, stage);
